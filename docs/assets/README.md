@@ -21,3 +21,5 @@ Platform marks remain the property of their respective owners. Keep the original
 `docs/references/` preserves the menu design reference and unused Blinkit logo without shipping them as public website files. Blinkit is not shown as an available ordering platform because a restaurant listing was not verified.
 
 The WhatsApp emblem was generated with the built-in image generation tool. Its final prompt is in [whatsapp-generation.md](whatsapp-generation.md).
+
+The revised palace entrance uses new desktop and mobile illustrations plus a transparent mist texture. See [entrance-generation.md](entrance-generation.md) for the final prompts and file paths.

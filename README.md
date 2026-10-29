@@ -40,7 +40,7 @@ git remote add origin YOUR_REPOSITORY_URL
 git push -u origin main
 ```
 
-If you already configured an `origin`, inspect it with `git remote -v` and use that repository instead of adding another remote. No GitHub remote has been configured by this preparation.
+If you already configured an `origin`, inspect it with `git remote -v` and use that repository instead of adding another remote. This setup does not change your existing GitHub remotes.
 
 ## Import into Vercel
 
@@ -98,3 +98,13 @@ sufi-palace/
 - **Image sources and credits:** `docs/assets/README.md`.
 
 WhatsApp opens a prepared message for the visitor to review and send. It does not send automatically or confirm reservations. Google Fonts, YouTube embeds and platform links need an internet connection. Embedded video availability remains controlled by its uploader.
+
+## Palace entrance
+
+The homepage entrance uses dedicated desktop and mobile Mughal door illustrations and a transparent mist texture. The generated artwork is vector-style raster artwork, delivered as JPEG/PNG assets. The doors hinge open as the hero gently zooms into place; mist disperses over the reveal.
+
+The normal sequence takes about 3.2 seconds after the door image is decoded. **Skip intro** or **Escape** ends it immediately. Reduced-motion visitors and direct section links bypass the entrance. Failed artwork/script loading has a bounded fallback so the page stays accessible.
+
+- Artwork and motion: `public/css/site.css` (Palace entrance section).
+- Timing and dismissal: the opening block in `public/js/app.js`.
+- Artwork prompts: `docs/assets/entrance-generation.md`.

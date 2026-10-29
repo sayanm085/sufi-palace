@@ -1,20 +1,64 @@
 const entrance = document.querySelector("#entrance");
 const skip = document.querySelector("#skip");
+const introRoot = document.documentElement;
+const introMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const introContent = [
+  ...document.querySelectorAll("main, footer, .whatsapp-widget"),
+];
 let introDone = false;
+let introOpening = false;
+let openingTimer;
+let cleanupTimer;
+let failOpenTimer;
+
 function finishIntro() {
   if (introDone) return;
   introDone = true;
+  clearTimeout(openingTimer);
+  clearTimeout(cleanupTimer);
+  clearTimeout(failOpenTimer);
+  introRoot.classList.remove("intro-pending", "intro-opening");
+  introContent.forEach((element) => {
+    element.inert = false;
+  });
+  entrance?.remove();
+  skip.hidden = true;
+  if (document.activeElement === skip)
+    document.querySelector(".brand")?.focus({ preventScroll: true });
+}
+
+function openDoors() {
+  if (introDone || introOpening) return;
+  introOpening = true;
+  introRoot.classList.add("intro-opening");
   entrance.classList.add("open");
-  skip.hidden = true;
-  window.setTimeout(() => entrance.remove(), 2400);
+  cleanupTimer = setTimeout(finishIntro, 2600);
 }
-if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  entrance.remove();
-  skip.hidden = true;
+
+if (!introRoot.classList.contains("intro-pending") || introMotion.matches) {
+  finishIntro();
 } else {
-  window.setTimeout(finishIntro, 1800);
+  skip.hidden = false;
+  introContent.forEach((element) => {
+    element.inert = true;
+  });
   skip.addEventListener("click", finishIntro);
+  failOpenTimer = setTimeout(finishIntro, 5200);
+  const door = entrance.querySelector("img");
+  // Start only once the door is decoded, so a slow connection never reveals an empty panel.
+  door
+    .decode()
+    .then(() => {
+      if (!introDone) openingTimer = setTimeout(openDoors, 600);
+    })
+    .catch(finishIntro);
 }
+introMotion.addEventListener("change", (event) => {
+  if (event.matches) finishIntro();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !introDone) finishIntro();
+});
 const toggle = document.querySelector(".menu-toggle"),
   nav = document.querySelector("#nav");
 toggle.addEventListener("click", () => {
