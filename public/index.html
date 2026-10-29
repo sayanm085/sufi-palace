@@ -143,10 +143,14 @@
               >
             </div>
           </div>
-          <div class="hero-scroll">
-            <span class="scroll-mouse"></span><small>Kolkata, India</small
-            ><i></i>
-          </div>
+          <a
+            class="hero-scroll scroll-begin"
+            href="#story"
+            aria-label="Begin the story of Sufi Palace"
+          >
+            <span class="scroll-mouse" aria-hidden="true"></span
+            ><small>Begin the story</small><i aria-hidden="true"></i>
+          </a>
         </section>
       </div>
       <div class="ticker heritage-ticker">
@@ -228,7 +232,9 @@
             <div
               class="book-stage"
               id="book-stage"
-              aria-label="Interactive three-dimensional menu book"
+              aria-label="Interactive three-dimensional menu book. Use left and right arrow keys to turn pages."
+              tabindex="0"
+              aria-keyshortcuts="ArrowLeft ArrowRight"
             >
               <div class="book-fallback" id="book-fallback">
                 <div class="fallback-left">
@@ -252,7 +258,9 @@
                 ‹
               </button>
               <div>
-                <strong id="book-count">01 / 04</strong
+                <span id="book-category" class="book-current-label"
+                  >Biryani</span
+                ><strong id="book-count">01 / 04</strong
                 ><span>Swipe the book or use the arrows</span>
               </div>
               <button type="button" id="book-next" aria-label="Next menu page">
@@ -743,6 +751,30 @@
         <span class="wa-toggle-label">Let’s talk <small>WhatsApp</small></span>
       </button>
     </aside>
+    <div class="reading-progress" aria-hidden="true">
+      <span id="reading-progress-fill"></span>
+    </div>
+    <nav class="chapter-rail" id="chapter-rail" aria-label="Page chapters">
+      <span class="chapter-rail-caption">Discover</span>
+      <a href="#top" aria-label="Welcome"
+        ><span>Welcome</span><i aria-hidden="true"></i
+      ></a>
+      <a href="#story" aria-label="Our story"
+        ><span>Our story</span><i aria-hidden="true"></i
+      ></a>
+      <a href="#flavours" aria-label="Signature dishes"
+        ><span>Flavours</span><i aria-hidden="true"></i
+      ></a>
+      <a href="#menu" aria-label="Explore the menu"
+        ><span>Our menu</span><i aria-hidden="true"></i
+      ></a>
+      <a href="#moments" aria-label="Guest stories"
+        ><span>Guest stories</span><i aria-hidden="true"></i
+      ></a>
+      <a href="#visit" aria-label="Visit Sufi Palace"
+        ><span>Visit us</span><i aria-hidden="true"></i
+      ></a>
+    </nav>
     <script src="js/app.js"></script>
     <script type="module" src="js/menu-book.js"></script>
   </body>

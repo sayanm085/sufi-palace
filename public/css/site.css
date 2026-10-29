@@ -3608,3 +3608,144 @@ main {
     overflow: auto;
   }
 }
+
+/* Quiet wayfinding, with no scroll interception or pinned content. */
+.reading-progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  z-index: 90;
+  pointer-events: none;
+}
+.reading-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #e8c580;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.chapter-rail {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 82;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 15px;
+  color: #f2d7a2;
+}
+.chapter-rail-caption {
+  font: 400 0.5rem var(--sans);
+  letter-spacing: 0.15em;
+  opacity: 0.7;
+  margin-right: -5px;
+  margin-bottom: 6px;
+  writing-mode: vertical-rl;
+}
+.chapter-rail a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 20px;
+}
+.chapter-rail a span {
+  font: 400 0.65rem var(--sans);
+  padding: 6px 9px;
+  border: 1px solid #d8b77933;
+  border-radius: 3px;
+  background: #330d16d9;
+  color: #f9e7bf;
+  opacity: 0;
+  translate: 5px 0;
+  transition:
+    opacity 0.2s,
+    translate 0.2s;
+  pointer-events: none;
+}
+.chapter-rail a i {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #e6c484;
+  rotate: 45deg;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+}
+.chapter-rail a[aria-current] i {
+  background: #f2d19a;
+  box-shadow: 0 0 0 4px #d5ad5c25;
+}
+.chapter-rail a:hover span,
+.chapter-rail a:focus-visible span,
+.chapter-rail a[aria-current] span {
+  opacity: 1;
+  translate: 0 0;
+}
+.chapter-rail.on-ivory {
+  color: #7b4c27;
+}
+.chapter-rail.on-ivory a i {
+  border-color: #7b4c27;
+}
+.chapter-rail.on-ivory a[aria-current] i {
+  background: #7b4c27;
+}
+.intro-pending .chapter-rail,
+.intro-pending .reading-progress {
+  visibility: hidden;
+}
+.scroll-begin {
+  padding: 7px 12px;
+  border-radius: 3px;
+}
+.scroll-begin:hover small {
+  color: #fff4df;
+}
+.scroll-begin .scroll-mouse:after {
+  animation: guide-mouse 1.8s ease-out 3;
+}
+@keyframes guide-mouse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  45% {
+    transform: translateY(10px);
+    opacity: 1;
+  }
+}
+.book-nav .book-current-label {
+  font: 500 1.1rem/1.1 var(--serif);
+  color: #f4dfba;
+  letter-spacing: 0;
+}
+.book-stage:focus-visible {
+  outline: 1px solid #e0c086;
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+.book-stage.turning canvas {
+  cursor: progress;
+}
+@media (max-width: 1100px) {
+  .chapter-rail {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-begin .scroll-mouse:after {
+    animation: none;
+  }
+}
+
+.book-nav button[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: progress;
+}

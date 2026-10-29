@@ -285,7 +285,9 @@ function hide() {
 function hoverTarget(target) {
   return target instanceof Element &&
     document.querySelector("#whatsapp-panel").hidden &&
-    !target.closest(".whatsapp-widget")
+    !target.closest(
+      ".whatsapp-widget, #chapter-rail, #book-prev, #book-next, .scroll-begin",
+    )
     ? target.closest("[data-hover-title]")
     : null;
 }
@@ -397,3 +399,35 @@ waForm.addEventListener("submit", (e) => {
 document
   .querySelector("#wa-name")
   .addEventListener("input", (e) => e.target.setCustomValidity(""));
+
+// A chapter guide follows normal scrolling; it never intercepts the wheel or touch gesture.
+const chapterLinks = [...document.querySelectorAll("#chapter-rail a")];
+const chapterSections = chapterLinks.map((link) =>
+  document.querySelector(link.getAttribute("href")),
+);
+const readingFill = document.querySelector("#reading-progress-fill");
+let readingFrame = 0;
+function updateReadingGuide() {
+  readingFrame = 0;
+  const distance = document.documentElement.scrollHeight - innerHeight;
+  readingFill.style.transform = `scaleX(${distance > 0 ? Math.max(0, Math.min(1, scrollY / distance)) : 0})`;
+  const marker = innerHeight * 0.4;
+  let selected = 0;
+  chapterSections.forEach((section, index) => {
+    if (section.getBoundingClientRect().top <= marker) selected = index;
+  });
+  chapterLinks.forEach((link, index) => {
+    if (index === selected) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+  document
+    .querySelector("#chapter-rail")
+    .classList.toggle("on-ivory", selected === 4);
+}
+function requestReadingUpdate() {
+  if (!readingFrame) readingFrame = requestAnimationFrame(updateReadingGuide);
+}
+window.addEventListener("scroll", requestReadingUpdate, { passive: true });
+window.addEventListener("resize", requestReadingUpdate);
+window.addEventListener("load", requestReadingUpdate);
+updateReadingGuide();

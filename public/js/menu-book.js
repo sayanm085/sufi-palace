@@ -1,4 +1,5 @@
 import * as THREE from "../vendor/three.module.js";
+import { createBookLeaf, getTurnPlan, restHeight } from "./book-leaf.js";
 const stage = document.querySelector("#book-stage"),
   prev = document.querySelector("#book-prev"),
   next = document.querySelector("#book-next"),
@@ -42,20 +43,27 @@ let current = 0,
   book,
   leftPage,
   rightPage,
-  turnFront,
-  turnBack,
+  leaf,
   artTexture,
   textures = [],
+  chapterTextures = [],
   direction = 1,
   started = 0,
   raf = 0;
+let cameraDistance = 10,
+  scrollFrame = 0,
+  menuVisible = true;
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const photos = {};
 function updateText() {
   const p = pages[current];
   count.textContent = `0${current + 1} / 04`;
   prev.disabled = current === 0;
-  next.disabled = current === 3;
+  next.disabled = current === pages.length - 1;
+  prev.setAttribute("aria-disabled", String(turning || prev.disabled));
+  next.setAttribute("aria-disabled", String(turning || next.disabled));
+  stage.setAttribute("aria-busy", String(turning));
+  document.querySelector("#book-category")?.replaceChildren(p.title);
   desc.textContent = `Menu page ${current + 1}: ${p.title}. ${p.items.join(", ")}`;
   fallbackTitle.textContent = p.title;
   fallbackItems.replaceChildren(
@@ -220,20 +228,41 @@ function noiseTexture(marble = false) {
   return texture(c);
 }
 function pageGeo(side) {
-  const g = new THREE.PlaneGeometry(W, H, 60, 12);
+  const g = new THREE.PlaneGeometry(W, H, 64, 8);
   g.translate((side * W) / 2, 0, 0);
   const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i);
-    p.setZ(
-      i,
-      0.045 +
-        Math.sin((Math.abs(x) / W) * Math.PI) * 0.065 -
-        (Math.abs(x) / W) * 0.045,
-    );
-  }
+  for (let i = 0; i < p.count; i++)
+    p.setZ(i, restHeight(Math.abs(p.getX(i)) / W));
   g.computeVertexNormals();
   return g;
+}
+function chapterTexture(image, index) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1000;
+  canvas.height = 1500;
+  const c = canvas.getContext("2d");
+  c.drawImage(image, 0, 0, 1000, 1500);
+  // A wordless gold seal keeps the reverse decorative throughout the turn.
+  c.fillStyle = "#3c111b";
+  c.beginPath();
+  c.arc(500, 1375, 45, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = "#dfbe7e";
+  c.lineWidth = 2;
+  c.beginPath();
+  c.arc(500, 1375, 39, 0, Math.PI * 2);
+  c.stroke();
+  c.save();
+  c.translate(500, 1375);
+  c.rotate((index * Math.PI) / 8);
+  for (let petal = 0; petal < 8; petal++) {
+    c.rotate(Math.PI / 4);
+    c.beginPath();
+    c.ellipse(0, 14, 5, 12, 0, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.restore();
+  return texture(canvas);
 }
 function render() {
   if (renderer) renderer.render(scene, camera);
@@ -246,30 +275,115 @@ function createBox(w, h, d, material, x, y, z, parent = scene) {
   parent.add(m);
   return m;
 }
+function addLantern(x) {
+  const lantern = new THREE.Group();
+  lantern.position.set(x, -1.9, 0.35);
+  const brass = new THREE.MeshStandardMaterial({
+    color: 0xb58a45,
+    metalness: 0.72,
+    roughness: 0.32,
+  });
+  const glow = new THREE.MeshStandardMaterial({
+    color: 0xffdd99,
+    emissive: 0xffb34b,
+    emissiveIntensity: 0.65,
+    roughness: 0.5,
+  });
+  const profile = [
+    new THREE.Vector2(0, 0),
+    new THREE.Vector2(0.16, 0.025),
+    new THREE.Vector2(0.17, 0.06),
+    new THREE.Vector2(0.12, 0.1),
+  ];
+  const base = new THREE.Mesh(new THREE.LatheGeometry(profile, 24), brass);
+  lantern.add(base);
+  const light = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.105, 0.125, 0.28, 8),
+    glow,
+  );
+  light.position.y = 0.25;
+  lantern.add(light);
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4;
+    const rib = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.33, 5),
+      brass,
+    );
+    rib.position.set(Math.cos(a) * 0.128, 0.26, Math.sin(a) * 0.128);
+    lantern.add(rib);
+  }
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.175, 0.16, 8), brass);
+  roof.position.y = 0.48;
+  lantern.add(roof);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.055, 0.009, 6, 20),
+    brass,
+  );
+  ring.position.y = 0.6;
+  lantern.add(ring);
+  const pool = new THREE.PointLight(0xffc27d, 0.3, 1.25, 2);
+  pool.position.set(0, 0.28, 0.12);
+  lantern.add(pool);
+  scene.add(lantern);
+}
+function updateCameraFromScroll() {
+  scrollFrame = 0;
+  if (!renderer || !camera || !menuVisible) return;
+  const rect = stage.getBoundingClientRect();
+  const progress = Math.max(
+    -1,
+    Math.min(1, (innerHeight / 2 - rect.top - rect.height / 2) / innerHeight),
+  );
+  camera.position.set(
+    0.15 + (reduce ? 0 : progress * 0.1),
+    0.35 + (reduce ? 0 : progress * 0.12),
+    cameraDistance,
+  );
+  camera.lookAt(0, -0.15, 0);
+  render();
+}
+function requestScrollRender() {
+  if (!reduce && !scrollFrame && menuVisible)
+    scrollFrame = requestAnimationFrame(updateCameraFromScroll);
+}
 async function init() {
   try {
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     stage.appendChild(renderer.domElement);
+    renderer.domElement.addEventListener("webglcontextlost", (event) => {
+      event.preventDefault();
+      cancelAnimationFrame(raf);
+      renderer?.domElement.remove();
+      renderer = null;
+      scene = null;
+      turning = false;
+      stage.classList.remove("ready", "turning");
+      updateText();
+    });
     const images = await Promise.all([
       loadImage("assets/backgrounds/book-art-page.webp"),
       loadImage("assets/food/biryani.png"),
       loadImage("assets/food/kebabs.png"),
       loadImage("assets/photos/storefront.webp"),
     ]);
+    if (!renderer) return;
     photos.biryani = images[1];
     photos.kebabs = images[2];
     photos.store = images[3];
-    artTexture = texture(images[0]);
+    chapterTextures = pages.map((_, index) => chapterTexture(images[0], index));
+    artTexture = chapterTextures[0];
     textures = pages.map(pageTexture);
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
-    scene.add(new THREE.HemisphereLight(0xffe6c0, 0x321015, 2));
-    const key = new THREE.DirectionalLight(0xffe0b4, 3);
+    scene.add(new THREE.HemisphereLight(0xfff4df, 0x321015, 1.65));
+    const key = new THREE.DirectionalLight(0xfff1da, 2.2);
     key.position.set(-4, 6, 7);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -281,11 +395,11 @@ async function init() {
       near: 0.1,
       far: 25,
     });
-    key.shadow.bias = -0.0003;
-    key.shadow.normalBias = 0.015;
+    key.shadow.bias = -0.00006;
+    key.shadow.normalBias = 0.004;
     key.shadow.radius = 4;
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffbb65, 1);
+    const fill = new THREE.DirectionalLight(0xffd9aa, 0.65);
     fill.position.set(4, 1, 3);
     scene.add(fill);
     const marble = new THREE.MeshPhysicalMaterial({
@@ -309,6 +423,8 @@ async function init() {
     });
     createBox(4.95, 0.11, 0.58, wood, 0, -1.81, -0.18);
     createBox(4.95, 0.04, 0.06, bronze, 0, -1.74, 0.12);
+    addLantern(-2.64);
+    addLantern(2.64);
     const backStand = createBox(4.55, 1.9, 0.11, wood, 0, -0.8, -0.44);
     backStand.rotation.x = -0.12;
     book = new THREE.Group();
@@ -318,7 +434,7 @@ async function init() {
     scene.add(book);
     for (const side of [-1, 1]) {
       const wing = new THREE.Group();
-      wing.rotation.y = side * 0.1;
+      // Page surfaces share the same rest profile as the moving leaf.
       book.add(wing);
       const cover = createBox(
         W + 0.13,
@@ -372,33 +488,18 @@ async function init() {
       if (side < 0) leftPage = pg;
       else rightPage = pg;
     }
-    const tg = new THREE.PlaneGeometry(W, H, 72, 12);
-    tg.translate(W / 2, 0, 0);
-    turnFront = new THREE.Mesh(
-      tg,
-      new THREE.MeshStandardMaterial({
-        map: textures[0],
-        roughness: 0.94,
-        side: THREE.FrontSide,
-      }),
-    );
-    turnBack = new THREE.Mesh(
-      tg.clone(),
-      new THREE.MeshStandardMaterial({
-        map: artTexture,
-        roughness: 0.94,
-        side: THREE.BackSide,
-      }),
-    );
-    for (const m of [turnFront, turnBack]) {
-      m.position.z = 0.14;
-      m.castShadow = true;
-      m.receiveShadow = true;
-      m.visible = false;
-      book.add(m);
-    }
+    leaf = createBookLeaf({
+      width: W,
+      height: H,
+      frontMap: textures[0],
+      backMap: chapterTextures[0],
+    });
+    leaf.group.position.z = 0.08;
+    leaf.group.visible = false;
+    book.add(leaf.group);
     stage.classList.add("ready");
     function resize() {
+      if (!renderer) return;
       const w = stage.clientWidth,
         h = stage.clientHeight;
       renderer.setSize(w, h, false);
@@ -407,6 +508,7 @@ async function init() {
         4.45 / (2 * Math.tan(Math.PI / 10)),
         5.9 / (2 * Math.tan(Math.PI / 10) * camera.aspect),
       );
+      cameraDistance = dist;
       camera.position.set(0.15, 0.35, dist);
       camera.lookAt(0, -0.15, 0);
       camera.updateProjectionMatrix();
@@ -414,10 +516,20 @@ async function init() {
     }
     new ResizeObserver(resize).observe(stage);
     resize();
+    settle();
+    window.addEventListener("scroll", requestScrollRender, { passive: true });
+    new IntersectionObserver(
+      ([entry]) => {
+        menuVisible = entry.isIntersecting;
+        if (menuVisible) requestScrollRender();
+      },
+      { rootMargin: "100px" },
+    ).observe(stage);
   } catch (err) {
     console.error("Menu 3D unavailable:", err);
     renderer?.domElement.remove();
     renderer = null;
+    scene = null;
     stage.classList.remove("ready");
   }
 }
@@ -427,14 +539,14 @@ function setMap(mesh, map) {
 }
 function settle() {
   setMap(rightPage, textures[current]);
-  setMap(leftPage, current === 0 ? artTexture : textures[current - 1]);
+  setMap(leftPage, chapterTextures[current]);
   render();
 }
 function turn(dir) {
-  const target = current + dir;
-  if (turning || target < 0 || target > 3) return;
+  const plan = getTurnPlan(current, dir, pages.length);
+  if (turning || !plan) return;
   if (!renderer || !scene || reduce) {
-    current = target;
+    current = plan.target;
     updateText();
     if (scene) settle();
     return;
@@ -442,66 +554,63 @@ function turn(dir) {
   turning = true;
   direction = dir;
   started = performance.now();
-  setMap(turnFront, textures[dir > 0 ? current : target]);
-  setMap(turnBack, dir > 0 ? textures[current] : textures[target]);
-  setMap(rightPage, textures[dir > 0 ? target : current]);
-  setMap(
-    leftPage,
-    target === 0
-      ? artTexture
-      : textures[Math.max(0, (dir > 0 ? current : target) - 1)],
-  );
-  turnFront.visible = turnBack.visible = true;
+  setMap(leaf.front, textures[plan.front]);
+  setMap(leaf.back, chapterTextures[plan.back]);
+  setMap(rightPage, textures[plan.underRight]);
+  setMap(leftPage, chapterTextures[plan.underLeft]);
+  leaf.update(plan.start);
+  leaf.group.visible = true;
+  prev.setAttribute("aria-disabled", "true");
+  next.setAttribute("aria-disabled", "true");
+  stage.setAttribute("aria-busy", "true");
+  stage.classList.add("turning");
   raf = requestAnimationFrame(animate);
 }
 function animate(now) {
-  const t = Math.min(1, (now - started) / 1450),
-    s = t * t * (3 - 2 * t),
-    progress = direction > 0 ? s : 1 - s;
-  for (const mesh of [turnFront, turnBack]) {
-    const a = mesh.geometry.attributes.position;
-    const cols = 73;
-    for (let i = 0; i < a.count; i++) {
-      const u = (i % cols) / (cols - 1);
-      let x = 0,
-        z = 0;
-      const steps = 30;
-      for (let j = 0; j < steps; j++) {
-        const f = (u * (j + 0.5)) / steps;
-        const theta =
-          -Math.PI * progress +
-          Math.sin(Math.PI * progress) * Math.sin(f * Math.PI) * 0.85;
-        x += (Math.cos(theta) * W * u) / steps;
-        z -= (Math.sin(theta) * W * u) / steps;
-      }
-      a.setX(i, x);
-      a.setZ(i, z + 0.045 * Math.sin(u * Math.PI));
-    }
-    a.needsUpdate = true;
-    mesh.geometry.computeVertexNormals();
-  }
+  const t = Math.min(1, (now - started) / 1600);
+  const eased = t * t * t * (t * (t * 6 - 15) + 10);
+  leaf.update(direction > 0 ? eased : 1 - eased);
   render();
   if (t < 1) raf = requestAnimationFrame(animate);
   else {
     current += direction;
-    turnFront.visible = turnBack.visible = false;
+    leaf.group.visible = false;
     turning = false;
+    stage.classList.remove("turning");
     updateText();
     settle();
   }
 }
 prev.addEventListener("click", () => turn(-1));
 next.addEventListener("click", () => turn(1));
-let px = null;
-stage.addEventListener("pointerdown", (e) => {
-  px = e.clientX;
-  stage.setPointerCapture(e.pointerId);
+let pointerStart = null;
+stage.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  pointerStart = { x: event.clientX, y: event.clientY };
+  stage.setPointerCapture(event.pointerId);
 });
-stage.addEventListener("pointerup", (e) => {
-  if (px === null) return;
-  const delta = e.clientX - px;
-  px = null;
-  if (Math.abs(delta) > 40) turn(delta < 0 ? 1 : -1);
+stage.addEventListener("pointerup", (event) => {
+  if (!pointerStart) return;
+  const dx = event.clientX - pointerStart.x,
+    dy = event.clientY - pointerStart.y;
+  pointerStart = null;
+  if (Math.abs(dx) > 44 && Math.abs(dx) > Math.abs(dy) * 1.2)
+    turn(dx < 0 ? 1 : -1);
 });
-stage.addEventListener("pointercancel", () => (px = null));
-init();
+stage.addEventListener("pointercancel", () => {
+  pointerStart = null;
+});
+stage.addEventListener("keydown", (event) => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  turn(event.key === "ArrowRight" ? 1 : -1);
+});
+const menuLoader = new IntersectionObserver(
+  ([entry], observer) => {
+    if (!entry.isIntersecting) return;
+    observer.disconnect();
+    init();
+  },
+  { rootMargin: "500px" },
+);
+menuLoader.observe(stage);

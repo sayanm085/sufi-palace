@@ -25,7 +25,7 @@ npm run dev -- --port 4180
 npm run build
 ```
 
-This validates JavaScript syntax, local image/style/module paths and section links. The website files are already in `public/`; no compilation or framework build is needed.
+This validates JavaScript syntax, local image/style/module paths and section links, then runs the menu leaf regression tests. The website files are already in `public/`; no compilation or framework build is needed.
 
 ## Push to your GitHub repository
 
@@ -69,7 +69,8 @@ sufi-palace/
 │   ├── css/site.css           # Desktop/mobile layouts and animations
 │   ├── js/
 │   │   ├── app.js             # Entrance, galleries, cursor, tooltips, WhatsApp
-│   │   └── menu-book.js       # Interactive Three.js menu book
+│   │   ├── menu-book.js       # Interactive Three.js menu book
+│   │   └── book-leaf.js       # Opaque page volume, curl and turn planning
 │   ├── assets/
 │   │   ├── backgrounds/       # Desktop and dedicated mobile artwork
 │   │   ├── branding/          # Restaurant wordmark and WhatsApp emblem
@@ -78,6 +79,7 @@ sufi-palace/
 │   │   └── photos/            # Restaurant photographs
 │   └── vendor/                # Bundled Three.js modules and its license
 ├── scripts/                   # Dependency-free preview and build checks
+├── tests/                     # Menu geometry and page-order regression tests
 ├── docs/                      # Asset notes, sources and design references
 ├── .openai/hosting.json        # Existing Sites binding; ignored by Vercel
 ├── .gitignore
@@ -108,3 +110,15 @@ The normal sequence takes about 3.2 seconds after the door image is decoded. **S
 - Artwork and motion: `public/css/site.css` (Palace entrance section).
 - Timing and dismissal: the opening block in `public/js/app.js`.
 - Artwork prompts: `docs/assets/entrance-generation.md`.
+
+## Cinematic menu and scroll guide
+
+Menu pages use opaque front and reverse surfaces with physical separation, a stitched paper edge, independent reverse UVs and decorative palace artwork on the back. The moving sheet does not receive its own shadows. Its rest curve matches the stationary pages.
+
+The menu supports horizontal swipe, the previous/next buttons and left/right keys when the book is focused. Vertical touch movement stays available for normal page scrolling. Reduced-motion visitors get immediate page changes.
+
+Small Three.js lanterns illuminate the plinth; a gentle scroll camera movement runs only near the menu. WebGL texture work starts as the menu approaches the viewport. A lost WebGL context returns to the readable HTML fallback.
+
+The desktop chapter rail links to each main section and follows the current section. A thin reading-progress line remains available on smaller screens; the hero's “Begin the story” link leads into the story section. Scrolling stays native.
+
+Run `npm test` for face separation, reverse UV orientation, page order and all-angle paper-volume checks. These tests are also part of `npm run build`.
