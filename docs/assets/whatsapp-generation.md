@@ -2,8 +2,7 @@
 
 Generated with the built-in image generation tool on 29 October 2026.
 
-Website asset: `dist/assets/whatsapp-heritage.png` (256 × 256 PNG, alpha preserved).
-Original: `/Users/sayan/.codex/generated_images/01a18696-a65f-75a0-89e1-1bfa7448a0fb/exec-73400f77-7656-4253-80ad-8c61ef723f42.png`.
+Website asset: `public/assets/branding/whatsapp-heritage.png` (256 × 256 PNG, alpha preserved).
 
 ## Final prompt
 

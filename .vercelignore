@@ -1,0 +1,7 @@
+.git/
+.openai/
+docs/
+README.md
+.github/
+*.zip
+*.tar.gz

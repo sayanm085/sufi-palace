@@ -1,0 +1,17 @@
+{
+  "name": "sufi-palace-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sufi Palace, Kolkata — heritage restaurant website",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "check": "node scripts/check.mjs",
+    "build": "npm run check"
+  }
+}
