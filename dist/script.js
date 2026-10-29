@@ -9,9 +9,102 @@ const platformDetails=[['Zomato','892 dining ratings','18K+ delivery ratings','L
 document.querySelectorAll('.platform-tile').forEach((el,i)=>{const data=platformDetails[i];el.dataset.hoverTitle=data[0];el.dataset.hoverSummary=data.slice(1).join(' · ');const info=document.createElement('small');info.className='platform-facts';info.textContent=data[1];el.insertBefore(info,el.lastElementChild);});
 document.querySelectorAll('.media-card').forEach(el=>{const img=el.querySelector('img'),iframe=el.querySelector('iframe');el.dataset.hoverTitle=iframe?'Visitor film':(img?.alt||'Restaurant media');el.dataset.hoverSummary=iframe?'A visitor’s Sufi Palace experience. Watch on YouTube.':(el.querySelector('.external-video')?'Open the full film on YouTube.':'Real restaurant photograph. Open the credited source for more.');});
 document.querySelectorAll('.dish-item').forEach(el=>{el.dataset.hoverTitle=el.querySelector('.dish-name')?.textContent.replace('✥','').trim();el.dataset.hoverSummary='Illustrative food artwork. Explore the menu for current dishes.'});
-const ring=document.createElement('div');ring.className='custom-cursor';ring.setAttribute('aria-hidden','true');document.body.append(ring);const bubble=document.createElement('div');bubble.className='hover-orb';bubble.setAttribute('role','tooltip');bubble.id='hover-orb';bubble.hidden=true;document.body.append(bubble);const fine=matchMedia('(hover: hover) and (pointer: fine)');let mx=0,my=0,rx=0,ry=0,active=null,animation;
-function moveRing(){rx+=(mx-rx)*.2;ry+=(my-ry)*.2;ring.style.transform=`translate3d(${rx}px,${ry}px,0)`;if(Math.abs(mx-rx)+Math.abs(my-ry)>.2)animation=requestAnimationFrame(moveRing);else animation=null}
-function positionBubble(el){const rect=el.getBoundingClientRect();const size=208;let left=Math.min(innerWidth-size-16,Math.max(16,rect.right-size/2));let top=Math.max(16,rect.top-size+24);bubble.style.left=left+'px';bubble.style.top=top+'px'}
-function show(el){active=el;ring.classList.add('hovering');if(!el.dataset.hoverTitle)return;bubble.replaceChildren();const star=document.createElement('span');star.textContent='✥';const heading=document.createElement('strong');heading.textContent=el.dataset.hoverTitle;const summary=document.createElement('p');summary.textContent=el.dataset.hoverSummary;bubble.append(star,heading,summary);bubble.hidden=false;el.setAttribute('aria-describedby','hover-orb');positionBubble(el)}
-function hide(){active?.removeAttribute('aria-describedby');active=null;ring.classList.remove('hovering');bubble.hidden=true}
-document.addEventListener('pointermove',e=>{if(!fine.matches||e.pointerType==='touch')return;mx=e.clientX;my=e.clientY;ring.classList.add('visible');if(!animation)animation=requestAnimationFrame(moveRing)});document.addEventListener('pointerover',e=>{if(!fine.matches)return;const el=e.target.closest('[data-hover-title]')||e.target.closest('a,button');if(el&&el!==active){hide();show(el)}});document.addEventListener('pointerout',e=>{if(active&&!active.contains(e.relatedTarget))hide()});document.addEventListener('focusin',e=>{const el=e.target.closest('[data-hover-title]');if(el)show(el)});document.addEventListener('focusout',hide);document.addEventListener('keydown',e=>{if(e.key==='Escape')hide()});document.addEventListener('scroll',()=>{if(active&&!bubble.hidden)positionBubble(active)},true);document.documentElement.addEventListener('pointerleave',()=>{ring.classList.remove('visible');hide()});
+// Offer context throughout the page, including navigation and guest reviews.
+document.querySelectorAll('.light-reviews blockquote').forEach(el=>{
+  el.dataset.hoverTitle=el.querySelector('cite').textContent;
+  el.dataset.hoverSummary=el.querySelector('p').textContent;
+});
+const pageContext={
+  '#top':['Welcome to Sufi Palace','Mughlai flavours in the heart of College Street, Kolkata.'],
+  '#story':['Our story','Discover the people, place and flavours behind Sufi Palace.'],
+  '#menu':['Explore our menu','Turn the pages of our menu to discover biryani, kebabs and more.'],
+  '#moments':['Guest stories','Explore real restaurant photographs, visitor films and selected reviews.'],
+  '#visit':['Visit Sufi Palace','113 Mahatma Gandhi Road, College Street Market, Kolkata.']
+};
+document.querySelectorAll('a,button').forEach(el=>{
+  if(el.closest('[data-hover-title]'))return;
+  const href=el.getAttribute('href')||'';
+  const label=(el.getAttribute('aria-label')||el.textContent).replace(/\s+/g,' ').trim();
+  let content=pageContext[href];
+  if(!content&&href.startsWith('tel:'))content=['Let’s talk','Call Sufi Palace on +91 84500 77775 for tables, timings and enquiries.'];
+  if(!content&&href.includes('maps'))content=['Find your way','Open directions to Sufi Palace in College Street, Kolkata.'];
+  if(!content&&href.includes('instagram'))content=['Follow Sufi Palace','Visit the restaurant’s Instagram for more moments and updates.'];
+  if(!content&&label)content=[label,href.startsWith('http')?'Open the original listing for more details.':'Explore more of the Sufi Palace experience.'];
+  if(content){el.dataset.hoverTitle=content[0];el.dataset.hoverSummary=content[1];}
+});
+const ring=document.createElement('div');
+ring.className='custom-cursor';ring.setAttribute('aria-hidden','true');document.body.append(ring);
+const bubble=document.createElement('div');
+bubble.className='hover-orb';bubble.setAttribute('role','tooltip');bubble.id='hover-orb';bubble.hidden=true;document.body.append(bubble);
+const fine=matchMedia('(hover: hover) and (pointer: fine)');
+let mx=0,my=0,rx=0,ry=0,active=null,animation;
+function moveRing(){
+  rx+=(mx-rx)*.2;ry+=(my-ry)*.2;
+  ring.style.transform=`translate3d(${rx}px,${ry}px,0)`;
+  if(Math.abs(mx-rx)+Math.abs(my-ry)>.2)animation=requestAnimationFrame(moveRing);else animation=null;
+}
+function positionBubble(el){
+  const rect=el.getBoundingClientRect(),width=bubble.offsetWidth,height=bubble.offsetHeight;
+  const left=Math.max(16,Math.min(innerWidth-width-16,rect.right-width*.35));
+  const above=rect.top-height-14;
+  const top=above>=16?above:Math.max(16,Math.min(innerHeight-height-16,rect.bottom+14));
+  bubble.style.left=left+'px';bubble.style.top=top+'px';
+}
+function show(el){
+  active=el;ring.classList.add('hovering');
+  if(!el.dataset.hoverTitle)return;
+  bubble.replaceChildren();
+  const ornament=document.createElement('span');ornament.className='hover-card-label';ornament.textContent='✥  SUFI PALACE';
+  const heading=document.createElement('strong');heading.textContent=el.dataset.hoverTitle;
+  const summary=document.createElement('p');summary.textContent=el.dataset.hoverSummary;
+  const foot=document.createElement('span');foot.className='hover-card-foot';foot.textContent='COLLEGE STREET · KOLKATA';
+  bubble.append(ornament,heading,summary,foot);bubble.hidden=false;
+  el.setAttribute('aria-describedby','hover-orb');positionBubble(el);
+}
+function hide(){active?.removeAttribute('aria-describedby');active=null;ring.classList.remove('hovering');bubble.hidden=true;}
+function hoverTarget(target){return target instanceof Element&&document.querySelector('#whatsapp-panel').hidden&&!target.closest('.whatsapp-widget')?target.closest('[data-hover-title]'):null;}
+document.addEventListener('pointermove',e=>{
+  if(!fine.matches||e.pointerType==='touch')return;
+  mx=e.clientX;my=e.clientY;ring.classList.add('visible');if(!animation)animation=requestAnimationFrame(moveRing);
+});
+document.addEventListener('pointerover',e=>{if(!fine.matches)return;const el=hoverTarget(e.target);if(el&&el!==active){hide();show(el);}});
+document.addEventListener('pointerout',e=>{if(active&&!active.contains(e.relatedTarget))hide();});
+document.addEventListener('focusin',e=>{const el=hoverTarget(e.target);if(el){hide();show(el);}});
+document.addEventListener('focusout',hide);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});
+document.addEventListener('scroll',()=>{if(active&&!bubble.hidden)positionBubble(active);},true);
+window.addEventListener('resize',hide);
+document.documentElement.addEventListener('pointerleave',()=>{ring.classList.remove('visible');hide();});
+
+// The visitor reviews and sends this enquiry in WhatsApp; nothing is sent here.
+const waToggle=document.querySelector('#whatsapp-toggle');
+const waPanel=document.querySelector('#whatsapp-panel');
+const waForm=document.querySelector('#whatsapp-form');
+function closeWhatsApp(restoreFocus=false){waPanel.hidden=true;waToggle.setAttribute('aria-expanded','false');if(restoreFocus)waToggle.focus();}
+waToggle.addEventListener('click',()=>{
+  if(!waPanel.hidden){closeWhatsApp();return;}
+  hide();waPanel.hidden=false;waToggle.setAttribute('aria-expanded','true');document.querySelector('#wa-name').focus({preventScroll:true});
+});
+document.querySelector('#whatsapp-close').addEventListener('click',()=>closeWhatsApp(true));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!waPanel.hidden)closeWhatsApp(true);});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.whatsapp-widget')&&!waPanel.hidden)closeWhatsApp();});
+function updateEnquiryFields(){
+  const groupEnquiry=['Table enquiry','Catering'].includes(new FormData(waForm).get('topic'));
+  document.querySelector('#wa-visit-details').hidden=!groupEnquiry;
+}
+waForm.addEventListener('change',updateEnquiryFields);
+waForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  if(!waForm.reportValidity())return;
+  const data=new FormData(waForm),name=data.get('name').trim();
+  if(!name){document.querySelector('#wa-name').setCustomValidity('Please enter your name.');waForm.reportValidity();return;}
+  const topic=data.get('topic'),lines=[`Hello Sufi Palace! My name is ${name}.`,`I’m contacting you about: ${topic}.`];
+  if(['Table enquiry','Catering'].includes(topic)){
+    if(data.get('guests'))lines.push(`Guests: ${data.get('guests')}`);
+    if(data.get('date'))lines.push(`Preferred date: ${data.get('date')}`);
+  }
+  const message=data.get('message').trim();if(message)lines.push(message);
+  lines.push('Please share the details and confirm availability. Thank you!');
+  window.location.assign('https://wa.me/918450077775?text='+encodeURIComponent(lines.join('\n')));
+});
+document.querySelector('#wa-name').addEventListener('input',e=>e.target.setCustomValidity(''));
